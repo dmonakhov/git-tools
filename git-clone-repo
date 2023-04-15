@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+                                                                                                                                                                        
+import argparse
+import os
+import subprocess
+import sys
+from urllib.parse import urlparse
+
+def fetch_git_repo(root_dir, url):
+    p = urlparse(url)
+    netloc = p.netloc
+    idx = netloc.find("@")
+    if idx != -1:
+        netloc = netloc[idx+1:]
+    path = os.path.join(root_dir, netloc, p.path.lstrip("/")).replace("~", "_")
+    if path.endswith('.git'):
+        path=path[:-4]
+    if os.path.exists(path):
+        print("repo {} is already exists".format(path))
+        return 0
+
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+    subprocess.check_call(["git", "clone", url, path])
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root-dir", type=str, default=None)
+    parser.add_argument("url", type=str)
+    args  = parser.parse_args()
+    if not args.root_dir:
+        args.root_dir = os.environ.get("SRC_REPO_PATH")
+        if not args.root_dir:
+            print("--root-dir option or env SRC_REPO_PATH is required")
+            sys.exit(1)
+    fetch_git_repo(args.root_dir, args.url)
+
+
+if __name__ == '__main__':
+    main()
+
+
+
