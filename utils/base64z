@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Trivial wrapper for base64 which compress data before base64
+if [ "$1" == "-d" ] 
+then
+    base64 -d | zstdcat 
+else
+    cat $@ | zstdmt --ultra -22  | base64
+fi
