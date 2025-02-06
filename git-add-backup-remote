@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -euo pipefail
+REPO_DIR=`git rev-parse --show-toplevel`
+LOCAL_DIR=`realpath -s --relative-to="$SRC_REPO_PATH" $REPO_DIR`
+#GIT_BACKUP_REMOTE_HOST
+#GIT_BACKUP_REMOTE_ROOT=${GIT_BACKUP_REMOTE_ROOT:-GIT_BACKUP}
+OPT=${1:-""}
+
+if [ "$OPT" == "-h" ] || [ "$OPT" == "--help" ]
+then
+    echo "Usage: $0 [GIT_BACKUP_URL]"
+    echo "\t default GIT_BACKUP_URL is $GIT_BACKUP_REMOTE_HOST:$GIT_BACKUP_REMOTE_ROOT/$LOCAL_DIR.git"
+    exit 1
+fi
+set -x
+
+ssh $GIT_BACKUP_REMOTE_HOST \
+    "mkdir -p $GIT_BACKUP_REMOTE_ROOT/${LOCAL_DIR}.git && \
+     cd $GIT_BACKUP_REMOTE_ROOT/${LOCAL_DIR}.git \
+     && git init --bare . \
+     && git config receive.denyCurrentBranch ignore"
+
+git remote add backup-${GIT_BACKUP_REMOTE_HOST} ${GIT_BACKUP_REMOTE_HOST}:$GIT_BACKUP_REMOTE_ROOT/${LOCAL_DIR}.git
+
+					       
+					       
