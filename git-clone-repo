@@ -16,31 +16,56 @@ def parse_git_url(url):
     return p.hostname, p.path.lstrip("/")
 
 
-def fetch_git_repo(root_dir, url):
+CLASSES = ("oss", "work", "priv")
+
+# A mirror under /data/src lends its objects to the workspaces' clones
+# (git clone --reference), so it must never delete one: a pruned object breaks
+# every clone that borrows it. preciousObjects makes git refuse to prune or to
+# delete packs; with it gc does nothing, so fetches keep their packs instead of
+# unpacking into loose objects, and auto-gc is off.
+MIRROR_CONFIG = (
+    ("core.repositoryformatversion", "1"),
+    ("extensions.preciousObjects", "true"),
+    ("fetch.unpackLimit", "1"),
+    ("gc.auto", "0"),
+)
+
+
+def make_mirror(path):
+    for key, value in MIRROR_CONFIG:
+        subprocess.check_call(["git", "-C", path, "config", key, value])
+
+
+def fetch_git_repo(root_dir, url, mirror=False):
     host, repo_path = parse_git_url(url)
     path = os.path.join(root_dir, host, repo_path).replace("~", "_")
     if path.endswith('.git'):
         path=path[:-4]
     if os.path.exists(path):
         print("repo {} is already exists".format(path))
-        return 0
-
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
-    subprocess.check_call(["git", "clone", url, path])
+    else:
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+        subprocess.check_call(["git", "clone", url, path])
+    if mirror:
+        make_mirror(path)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root-dir", type=str, default=None)
+    parser.add_argument("--class", dest="cls", choices=CLASSES, default=None,
+                        help="clone into $WS_SRC_ROOT/<class> (default /data/src) as a mirror")
     parser.add_argument("url", type=str)
     args  = parser.parse_args()
+    if not args.root_dir and args.cls:
+        args.root_dir = os.path.join(os.environ.get("WS_SRC_ROOT", "/data/src"), args.cls)
     if not args.root_dir:
         args.root_dir = os.environ.get("SRC_REPO_PATH")
         if not args.root_dir:
-            print("--root-dir option or env SRC_REPO_PATH is required")
+            print("--root-dir, --class or env SRC_REPO_PATH is required")
             sys.exit(1)
-    fetch_git_repo(args.root_dir, args.url)
+    fetch_git_repo(args.root_dir, args.url, mirror=args.cls is not None)
 
 
 if __name__ == '__main__':

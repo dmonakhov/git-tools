@@ -11,6 +11,10 @@ all:
 	@echo "Nothing to build, it is all bash :)"
 	@echo "Try make install"
 
+.PHONY: test
+test:
+	./tests/test-git-clone-repo.sh
+
 .PHONY: install
 install:
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin/
