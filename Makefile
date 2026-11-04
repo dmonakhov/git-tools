@@ -14,6 +14,7 @@ all:
 .PHONY: test
 test:
 	./tests/test-git-clone-repo.sh
+	./tests/test-git-add-backup-remote.sh
 
 .PHONY: install
 install:

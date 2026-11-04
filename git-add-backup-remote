@@ -1,8 +1,17 @@
 #!/bin/bash
 
 set -euo pipefail
-REPO_DIR=`git rev-parse --show-toplevel`
-LOCAL_DIR=`realpath -s --relative-to="$SRC_REPO_PATH" $REPO_DIR`
+# The backup is named by the repository's path below the root of the layout:
+# /data/src/<class>/<host>/<path> for a mirror, /data/ws/<ws>/src/<name>.git
+# for a workspace's bare clone; a linked worktree backs up its repository.
+ROOT=${SRC_REPO_PATH:-/data}
+REPO_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
+REPO_DIR=${REPO_DIR%/.git}
+LOCAL_DIR=$(realpath -s --relative-to="$ROOT" "$REPO_DIR")
+LOCAL_DIR=${LOCAL_DIR%.git}
+case "$LOCAL_DIR" in
+    ..|../*) echo "$REPO_DIR is not below $ROOT; set SRC_REPO_PATH" >&2; exit 1 ;;
+esac
 #GIT_BACKUP_REMOTE_HOST
 #GIT_BACKUP_REMOTE_ROOT=${GIT_BACKUP_REMOTE_ROOT:-GIT_BACKUP}
 OPT=${1:-""}
